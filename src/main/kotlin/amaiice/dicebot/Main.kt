@@ -53,7 +53,7 @@ suspend fun main () {
                 check = "クリティカル！(決定的成功)"
                 type = 0
             }
-            in 95..100 -> {
+            in 96..100 -> {
                 check ="ファンブル！(致命的失敗)"
                 type = 3
             }
