@@ -3,8 +3,7 @@ package amaiice.dicebot
 import dev.kord.common.Color
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
-import dev.kord.core.behavior.channel.createEmbed
-import dev.kord.core.entity.channel.MessageChannel
+import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.core.on
 import dev.kord.rest.builder.interaction.boolean
@@ -24,14 +23,12 @@ suspend fun main () {
             required = true
         }
         integer("sv","技能値/成功可否を吐いてくれます")
-        boolean("if_secret", "シークレットダイスかどうか trueでシークレット化") {
-            default = false
-        }
+        boolean("if_secret", "シークレットダイスかどうか trueでシークレット化")
     }
 
     kord.on<GuildChatInputCommandInteractionCreateEvent> {
         val command = interaction.command
-        val channel = kord.getChannelOf<MessageChannel>(interaction.channelId)
+        val response = if(command.booleans["if_secret"] == true) interaction.deferEphemeralResponse() else interaction.deferPublicResponse()
         val sv = command.integers["sv"]
         val dice = command.strings["dice"]!!.split("d").map(String::toInt)
 
@@ -71,22 +68,27 @@ suspend fun main () {
                 }
             }
         }
+        val embed = EmbedBuilder()
+        val embedList = ArrayList<EmbedBuilder>()
 
-
-        channel!!.createEmbed {
-            color = Color (when(type) {
-                0 -> java.awt.Color.YELLOW.rgb
-                1 -> java.awt.Color.CYAN.rgb
-                2 -> java.awt.Color.RED.rgb
-                3 -> java.awt.Color.BLACK.rgb
-                else -> {java.awt.Color.GREEN.rgb}
-            })
-            author {
-                icon = interaction.user.avatar!!.cdnUrl.toUrl()
-                name = interaction.user.effectiveName
-            }
-            description = "**${dice[0]}d${dice[1]}**${if(skillcheck) " 成功値:$sv" else ""} \n--> $roll\n${if(check1d100) check else ""}"
+        embed.color = Color (when(type) {
+            0 -> java.awt.Color.YELLOW.rgb
+            1 -> java.awt.Color.CYAN.rgb
+            2 -> java.awt.Color.RED.rgb
+            3 -> java.awt.Color.BLACK.rgb
+            else -> {java.awt.Color.GREEN.rgb}
+        })
+        embed.author {
+            icon = interaction.user.avatar!!.cdnUrl.toUrl()
+            name = interaction.user.effectiveName
         }
+        embed.description = "**${dice[0]}d${dice[1]}**${if(skillcheck) " 成功値:$sv" else ""} \n--> $roll\n${if(check1d100) check else ""}"
+
+        embedList.add(embed)
+        response.respond {
+            embeds = embedList
+        }
+
     }
 
     kord.login()
